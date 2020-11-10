@@ -1,0 +1,97 @@
+
+# Connection details
+
+
+connection: # Imap Server to which the connection is made
+  server: imap.example.com
+  # User name at the imap server. Password will be asked for by the script and stored in the keyring
+  user: user@example.ne
+
+# Mailbox from which the script will try to move messages
+mailbox: Archive
+
+
+
+OlderThen: 10
+
+
+# Mailes that are not matched by the Archive rules will be archived in
+# a directory that is determined from the List-ID under the
+# List-ID-Destination (e.g. AUTO-ARCHIVE/all.ietf.org )
+List-Id-Destination: AUTO-ARCHIVE
+
+# If all fails the mail will be archived in a directory determined by
+# the timestamp on the mail under the Date-Destination (e.g DATE-ARCHIVE/2020)
+Date-Destination: DATE-ARCHIVE
+
+Unknown-Date-Destination: DATEFAIL-ARCHIVE
+
+
+# Archive Rules is an array with rules following the that are structured as follow:
+#    name:  "A descriptive Name, used for debugging only"
+#    Priority: 10 # Priority by wich the rule needs to be applied 
+#                 # higher priority rules are tried first and first match wins  
+#    DestinationArchive: "Archived-Lists/BossList"  #Destination of the Mails
+#    DestinationArchivePolicy: Flat    # Flat: All mails are archived in the DestinationArchive
+#                                      # ByYear, ByQuarter, ByMonth - mails are archived in
+#                                      # a directory structure based on the timestamp of the mail
+#    Regexps:      # Array of header - regexp combindations. The regexp will be matched against the
+#     		   # header specified in the header vallue
+#		   # All header-regex combinations need to be matched for the message to
+#		   # be moved
+#      - header: "List-Id:"
+#        regex: ".*Enterprise MailExploder <enterprise.elists.example.org>"
+#      - header: "From:"
+#        regex: ".*<thebos@example.com>"
+
+ArchiveRules:
+
+  - name:  "ISOC Newsletter_0"
+    Priority: 10
+    DestinationArchive: "Archived-Lists/ISOC-Communication"
+    DestinationArchivePolicy: Flat
+    Regexps:
+      - header: "List-Id:"
+        regex: ".*ISOC Newsletter <isoc-newsletter.elists.isoc.org>"
+
+  - name:  Cullen International
+    Priority: 10
+    DestinationArchive: Archived-Lists/Cullen-International
+    DestinationArchivePolicy: Flat
+    Regexps:
+       - header: "From:"
+         regex: ".*cullen-international.*"
+  - name:  Asana
+    Priority: 10
+    DestinationArchive: Archived-Lists/Asana
+    DestinationArchivePolicy: Flat
+    Regexps:
+       - header:      "List-Id:"
+         regex: "<spc-123456-0>"
+
+  - name:  ISOC Announcements
+    Priority: 10
+    DestinationArchive: Archived-Lists/ISOC-Communication
+    DestinationArchivePolicy: Flat
+    Regexps:
+       - header:      "List-Id:"
+         regex: ".*Announcement list for all ISOC members.*"
+
+  - name:  Wrongly Archived
+    Priority: 21
+    DestinationArchive: OTHER_ACCOUNTS/olaf.example.com
+    DestinationArchivePolicy: Flat
+    Regexps:
+       - header:      "Delivered-To:"
+         regex: olaf@example.com
+
+  - name:  Doesn't belong here
+    Priority: 1
+    DestinationArchive: OTHER_ACCOUNTS/wrong.example.com
+    DestinationArchivePolicy: Flat
+    Regexps:
+       - header:      "Received:"
+         regex: ".*by wrong.example.com"
+
+
+

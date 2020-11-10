@@ -546,10 +546,10 @@ try: # If anything fails close the connection gracefully
 
                 # Fill the destinations dict
                 if destination_path in destinations:
-                    destinations[destination_path][1].append(mc.get_uid().decode('utf-8'))
+                    destinations[destination_path][1].append(mc.get_uid())
 
                 else:
-                    destinations[destination_path]= [destination_path_elements, [(mc.get_uid()).decode('utf-8')]]
+                    destinations[destination_path]= [destination_path_elements, [(mc.get_uid())]]
 
                     #Done with  looking at all  messages and determining  whether they
         #should be moved

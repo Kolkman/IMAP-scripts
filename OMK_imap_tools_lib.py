@@ -81,7 +81,7 @@ class MessageContainer(email.message.Message):
         parser=email.parser.HeaderParser()
         msg=parser.parsestr(headerstr.decode('utf-8'))
         self.__dict__=msg.__dict__
-        self.uid=uid
+        self.uid=uid.decode('utf-8')
         date=None
         date_str=self.get("Date")
         if date_str:

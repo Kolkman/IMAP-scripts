@@ -2,3 +2,7 @@
 tmp.log
 __pycache__
 .DS_Store
+config-olaf-dn.yaml
+config-olaf-isoc.yaml
+test.py
+test.yaml

@@ -9,22 +9,20 @@ on a particular rule set and a few heuristics
 
 from OMK_imap_tools_lib import *
 from pprint import pprint
-from progressbar import *     #pip install progressbar    
-import yaml    #pip install pyyaml
+from progressbar import *         
 import logging
 import re
 from time import (mktime)
 from datetime import datetime, timedelta
 import argparse
-import keyring   # pip install keyring
-from cerberus import Validator #pip install cerberus
+from cerberus import Validator
 
 #logging.basicConfig(level = logging.DEBUG, filename="tmp.log")
 
-#imaplib.Debug  =  4
+logging.basicConfig(level = logging.DEBUG, filename="tmp.log")
 
-__author__ = 'Olaf Kolkman based on http://pymotw.com/2/imaplib/xb (link broken)'
-__license__ = 'BSD 3 clause License'
+#demaplib.Debug  =  4
+
 
 
 
@@ -223,8 +221,6 @@ if not v.validate(configuration_data):
 
 
 
-
-
 for rule in list(configuration_data['ArchiveRules']):
     for p in rule['DestinationArchive']:
         try:
@@ -252,12 +248,12 @@ movethem=not args.nomove
 
 RootNode=ImapNode("")
 print (f"Connecting to: {server}")
-c = open_connection_to_IMAPServer(server,username)
+ImapConnection = open_connection_to_IMAPServer(server,username)
 
 try: # If anything fails close the connection gracefully
-    typ, data = c.list(mailbox)
+    typ, data = ImapConnection.list(mailbox)
     if typ != "OK":
-        raise Exception("Could not read %s"% mailbox)
+        raise Exception("Could not read {mailbox}")
     if not data[0]:
         print (f"Nonexistent mailbox: {mailbox}")
         exit(0)
@@ -291,13 +287,13 @@ try: # If anything fails close the connection gracefully
 
         n=0
         if "NoInferiors" in theflags or "HasNoChildren" in theflags:
-            typ, mb = c.select(pmailbox,readonly=True)
+            typ, mb = ImapConnection.select(pmailbox,readonly=True)
             if typ != "OK":
                 raise Exception("Could not read %s"%pmailbox)
-            uidval = c.response('UIDVALIDITY')
-            typ, msg_ids = c.uid('search',None, 'ALL')
+            uidval = ImapConnection.response('UIDVALIDITY')
+            typ, msg_ids = ImapConnection.uid('search',None, 'ALL')
             n=len(msg_ids[0].split())
-            c.close()
+            ImapConnection.close()
         RootNode.add_path(pmailbox, flags= theflags, number_of_messages=n)
 
 
@@ -310,15 +306,15 @@ try: # If anything fails close the connection gracefully
     
     for box in node.child_mailboxes():
         msglist = []
-        typ, mb = c.select(box,readonly=False)
+        typ, mb = ImapConnection.select(box,readonly=False)
         if typ != "OK":
             raise Exception("Could not select %s (%s)"% (mailbox,typ))
         if  int(mb[0]) == 0:
             raise Exception("Nothing")
-        uidval = c.response('UIDVALIDITY')
+        uidval = ImapConnection.response('UIDVALIDITY')
 
         # Get all message UIDs
-        typ, msg_ids = c.uid('search',None, 'ALL')
+        typ, msg_ids = ImapConnection.uid('search',None, 'ALL')
         msgarray = (msg_ids[0].split())
 
 
@@ -329,7 +325,6 @@ try: # If anything fails close the connection gracefully
                    ' ', ETA(), ' '] #see docs for other options
      
         pbar  =  ProgressBar(maxval = len(msgarray),widgets = widgets)
-        
         pbar.start()        
 
         # Scann all messages in the box and create an arracy with
@@ -338,12 +333,12 @@ try: # If anything fails close the connection gracefully
             if args.breakpoint >0:
                 if index == args.breakpoint:
                     break   #USE WHILE DEVELOPING
-            typ, msg_data = c.uid('fetch',msguid,'(BODY.PEEK[HEADER] ENVELOPE)')
+            typ, msg_data = ImapConnection.uid('fetch',msguid,'(BODY.PEEK[HEADER] ENVELOPE)')
             # DATA Structure in MSG_DATA
             # [('1 (UID 127055 BODY[HEADER] {1669}', 'Return-Path: <kassa@
             pbar.update(index)
             hdr = msg_data[0][1]
-            mc=MessageContainer(msguid,hdr);
+            mc=MessageContainer(msguid.decode("utf-8"),hdr.decode("utf-8"));
             msglist.append(mc)
             pass
         pbar.finish()
@@ -389,10 +384,11 @@ try: # If anything fails close the connection gracefully
                 if  (( datetime.now() -  mc.get_datetime() ) <
                      timedelta (days = configuration_data["OlderThen"])):
                     logging.debug( f'Message is younger than {configuration_data["OlderThen"]} ({mc.get("Date")})')
+                    
                     continue
             except TypeError: 
                 print ("datetime failure")
-##                pprint (mc)
+
                 
                 destinations[configuration_data['Unknown-Date-Destination']]= [ configuration_data['Unknown-Date-Destination'].split(node.delimiter), [(mc.get_uid())]]
                 mc.moved= configuration_data['Unknown-Date-Destination']
@@ -412,7 +408,7 @@ try: # If anything fails close the connection gracefully
                     if _match_against_regex(mc,rule["Regexps"]):
                         logging.debug("creating rule %s"% rule) 
                         destination_path_elements=_create_rule_based_destination(mc,rule);
-                    if destination_path_elements: # no rulxse matched. Just don't archive
+                    if destination_path_elements: # no rulse matched. Just don't archive
                         destination_path= node.delimiter.join(destination_path_elements)
                         if re.match(r"\s", destination_path):
                             raise Exception(
@@ -530,10 +526,11 @@ try: # If anything fails close the connection gracefully
                         str(dest_year)  #,dest_quarter
                         ]
                 
-                if destination_path_elements: # no rulse matched. Just don't archive
+                if destination_path_elements:
                     destination_path= node.delimiter.join(destination_path_elements)
-                else:
-                    continue
+
+                else:  
+                    continue  # no rulse matched. Just don't archive
 
                 if re.match(r"\s", destination_path):
                     raise Exception(
@@ -547,11 +544,9 @@ try: # If anything fails close the connection gracefully
                 # Fill the destinations dict
                 if destination_path in destinations:
                     destinations[destination_path][1].append(mc.get_uid())
-
                 else:
                     destinations[destination_path]= [destination_path_elements, [(mc.get_uid())]]
-
-                    #Done with  looking at all  messages and determining  whether they
+        #Done with  looking at all  messages and determining  whether they
         #should be moved
         pbar.finish()              
 
@@ -564,23 +559,21 @@ try: # If anything fails close the connection gracefully
             numbertomove=0
             for (key,mv_data_list) in list(destinations.items()):
                 numbertomove+=len(mv_data_list[1])
-            
+
             pbar = ProgressBar(maxval=numbertomove,widgets=widgets)
             logging.debug(f"We need to move {numbertomove} messages" )
-        
+
             pbar.start()     
-        
             numbermoved=0
 
             for (key,mv_data_list) in list(destinations.items()):
                 # Check existence of directory, create if necessary
-                path=node.delimiter.join(mv_data_list[0])
+                path=(node.delimiter.join(mv_data_list[0]))
                 logging.debug("Calling List with argument: %s" % path )
-                typ, response = c.list(path)
+                typ, response = ImapConnection.list(path)
                 if typ!='OK':
                     raise Exception ("Failed to execute list command to IMAP server %s"%server)
                 #print len(response)
-
                 foundpath=0
                 for resp in response:
                     if not resp: continue 
@@ -590,18 +583,19 @@ try: # If anything fails close the connection gracefully
                 if not (foundpath):
                     # Create IMAP Folder
                     logging.debug("Creating Folder %s on Imap Server: %s"%(path,server))
-                    typ, dat = c.create(path)
+                    typ, dat = ImapConnection.create(path)
                     if typ!='OK':
+                        logging.debug("Imap Server returned: %s"%(typ))
                         raise Exception ("Failed to create folder %s on  IMAP server %s. IMAP Server returned: %s"%(path,server,response[0]))
                 logging.debug(f"list command for {path} returned: {response[0]}")
 
                 # Copy the messages
                 # Do this in chuncks of chunk messages so that the msg lists do not become to long for IMAP to handle them
                
-                chunk=50
+                chunk=int (50)
                 length=len(mv_data_list[1])
-                chunkcount=length//chunk
-                cycle=0
+                chunkcount=int(length/chunk)
+                cycle=int(0)
                 while ( cycle <= chunkcount ):
                     if (cycle == chunkcount):
                         mv_data= (mv_data_list[1])[cycle*chunk:]
@@ -609,20 +603,19 @@ try: # If anything fails close the connection gracefully
                     else:
                         mv_data= (mv_data_list[1])[cycle*chunk:(cycle+1)*chunk]                   
                         numbermoved += chunk
-                    typ,response =c.uid('copy',','.join(mv_data),path)  #msg set is comma separated UIDs
+                    typ,response =ImapConnection.uid('copy',','.join(mv_data),path)  #msg set is comma separated UIDs
                     if typ!='OK':
                         raise Exception ("Failed to copy data to %s on  IMAP server %s. IMAP Server returned: %s"%(path,server,response[0]))
 
                     # Set the delete flag
-                    typ, before = c.uid('store',','.join(mv_data), '+FLAGS', r'(\Deleted)')
+                    typ, before = ImapConnection.uid('store',','.join(mv_data), '+FLAGS', r'(\Deleted)')
                     if typ!='OK':
                         raise Exception ("Failed to set DELETE Flag  IMAP server %s. IMAP Server returned: %s"%(server,response[0]))
 
                                     #expunge
-                    typ,response=c.expunge()
+                    typ,response=ImapConnection.expunge()
                     if typ!='OK':
                         raise Exception ("Failed to set expunge on IMAP server %s (working on %s):%s"%(server,box,response))
-                    
                     pbar.update(numbermoved)
                     cycle += 1
 
@@ -645,7 +638,7 @@ try: # If anything fails close the connection gracefully
             header=hints[i][0]
             content=hints[i][1]
             messagecont=hints[i][2][0]
-            typ,response = c.uid('fetch',messagecont.get_uid(),'FAST')
+            typ,response = ImapConnection.uid('fetch',messagecont.get_uid(),'FAST')
             if response[0]:
                 print ("---------------------------------------------")
                 print (f"{header}\":\"{content}\"")
@@ -670,10 +663,10 @@ try: # If anything fails close the connection gracefully
                 
 finally:
     try:
-        c.close()
+        ImapConnection.close()
     except:
         pass
-    c.logout()
+    ImapConnection.logout()
 
 
     
@@ -681,4 +674,3 @@ finally:
     
     
     
-

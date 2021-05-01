@@ -79,7 +79,7 @@ class MessageContainer(email.message.Message):
         """
         # Trial and error object copy. NEEDS REVIEW
         parser=email.parser.HeaderParser()
-        msg=parser.parsestr(headerstr.decode('utf-8'))
+        msg=parser.parsestr(headerstr)
         self.__dict__=msg.__dict__
         self.uid=uid.decode('utf-8')
         date=None

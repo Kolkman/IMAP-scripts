@@ -10,14 +10,15 @@ on a particular rule set and a few heuristics
 from OMK_imap_tools_lib import *
 from pprint import pprint
 from progressbar import *         
+import yaml
 import logging
 import re
 from time import (mktime)
 from datetime import datetime, timedelta
 import argparse
+import keyring
 from cerberus import Validator
 
-#logging.basicConfig(level = logging.DEBUG, filename="tmp.log")
 
 logging.basicConfig(level = logging.DEBUG, filename="tmp.log")
 
@@ -564,6 +565,7 @@ try: # If anything fails close the connection gracefully
             logging.debug(f"We need to move {numbertomove} messages" )
 
             pbar.start()     
+            
             numbermoved=0
 
             for (key,mv_data_list) in list(destinations.items()):

@@ -9,8 +9,8 @@ import keyring
 
 from email.parser import HeaderParser
 # See http://pymotw.com/2/imaplib/xb
-__author__ = 'Olaf Kolkman based on http://pymotw.com/2/imaplib/xb (link broken)'
-__license__ = 'BSD 3 clause License'
+__author__ = 'Olaf Kolkman <olaf@NLnetLabs.nl> based on http://pymotw.com/2/imaplib/xb (link broken)'
+__license__ = 'PSF License'
 
 
 
@@ -81,7 +81,7 @@ class MessageContainer(email.message.Message):
         parser=email.parser.HeaderParser()
         msg=parser.parsestr(headerstr)
         self.__dict__=msg.__dict__
-        self.uid=uid.decode('utf-8')
+        self.uid=uid
         date=None
         date_str=self.get("Date")
         if date_str:
@@ -201,7 +201,6 @@ class ImapNode():
         
         #print (f'Initialized {parentname} -> {self.name} ({" ".join(flags)})')
 
-
     def delete_empty_branches(self, connection):
         """delete the node  and all its child nodes if there are no messages in the branch
 
@@ -281,5 +280,4 @@ class ImapNode():
             
         return ('%s  [%s] : %s' % (self.path(),  children, other))
                                     
-
 
